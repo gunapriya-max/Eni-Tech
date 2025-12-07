@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple Static Website</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f5f5f5;
+    }
+    header {
+      background: #4a90e2;
+      padding: 20px;
+      color: white;
+      text-align: center;
+    }
+    main {
+      max-width: 600px;
+      margin: 40px auto;
+      background: white;
+      padding: 20px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background: #4a90e2;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #357ab8;
+    }
+    footer {
+      text-align: center;
+      padding: 15px;
+      color: #555;
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Simple Static Website</h1>
+</header>
+
+<main>
+  <h2>Contact Form</h2>
+
+  <label for="name">Name</label>
+  <input type="text" id="name">
+
+  <label for="message">Message</label>
+  <textarea id="message" rows="4"></textarea>
+
+  <button onclick="downloadPDF()">Download PDF</button>
+</main>
+
+<footer>
+  © 2025 Simple Static Site
+</footer>
+
+<script>
+  // Simple front-end only "PDF" export using a text file (static-sites can't generate PDFs)
+  function downloadPDF() {
+    const name = document.getElementById("name").value;
+    const msg = document.getElementById("message").value;
+
+    const content = `Name: ${name}\nMessage: ${msg}\n\n(Static site demo — PDF requires backend)`;
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "form-output.txt"; // PDF requires backend
+    a.click();
+  }
+</script>
+
+</body>
+</html>

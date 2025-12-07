@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Animated Calculator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0f1724; --card:#0b1220; --accent:#7dd3fc; --glass: rgba(255,255,255,0.03);
+      --btn:#111827; --btn-h:#1f2937; --danger:#fb7185;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial;color:#e6eef6;background:linear-gradient(180deg,#071024 0%, #051022 100%);display:flex;align-items:center;justify-content:center}
+
+    .wrap{width:360px;padding:20px;border-radius:18px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));box-shadow:0 10px 30px rgba(2,6,23,0.6);backdrop-filter: blur(6px)}
+
+    .title{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+    .logo{width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#60a5fa);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(99,102,241,0.12);transform:rotate(-10deg);}
+    .logo span{font-weight:700;color:#042028}
+    h1{font-size:18px;margin:0}
+    p.sub{margin:0;color:#9fb6c4;font-size:13px}
+
+    .screen{height:86px;border-radius:12px;padding:12px;background:var(--glass);display:flex;flex-direction:column;justify-content:center;align-items:flex-end;position:relative;overflow:hidden}
+    .screen .expr{font-size:14px;color:#9fb6c4;opacity:0.9}
+    .screen .value{font-size:32px;font-weight:700;line-height:1}
+
+    /* animated floating orbs in screen background */
+    .orb{position:absolute;border-radius:50%;opacity:0.06;filter:blur(18px)}
+    .orb.a{width:220px;height:220px;right:-60px;top:-40px;background:linear-gradient(90deg,#7dd3fc,#60a5fa)}
+    .orb.b{width:160px;height:160px;left:-40px;bottom:-40px;background:linear-gradient(90deg,#a78bfa,#7c3aed)}
+
+    .pad{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+    button.key{padding:16px;border-radius:12px;border:0;background:var(--btn);color:#e6eef6;font-weight:600;font-size:16px;cursor:pointer;box-shadow:0 6px 14px rgba(2,6,23,0.5);transition:transform .12s ease, box-shadow .12s ease}
+    button.key:active{transform:translateY(6px)}
+    button.op{background:linear-gradient(180deg,#1f2937,#111827);color:var(--accent)}
+    button.eq{grid-column:span 2;background:linear-gradient(90deg,#34d399,#10b981);color:#042028}
+    button.clear{background:linear-gradient(90deg,var(--danger),#ef4444)}
+
+    /* playful hover tilt */
+    button.key:hover{transform:translateY(-6px) scale(1.02)}
+
+    /* small indicator */
+    .hint{margin-top:10px;color:#9fb6c4;font-size:13px;text-align:center}
+
+    /* keyboard focus ring */
+    button.key:focus{outline:3px solid rgba(125,211,252,0.12)}
+
+    /* subtle entrance animations */
+    .wrap{animation:pop .5s cubic-bezier(.2,.9,.2,1)}
+    @keyframes pop{from{transform:scale(.96);opacity:0}to{transform:scale(1);opacity:1}}
+
+    /* responsive */
+    @media (max-width:420px){.wrap{width:92vw;padding:16px}}
+  </style>
+</head>
+<body>
+  <div class="wrap" role="application" aria-label="Animated Calculator">
+    <div class="title">
+      <div class="logo"><span>≅</span></div>
+      <div>
+        <h1>CalcPlay</h1>
+        <p class="sub">Interactive, keyboard-friendly, and a little bouncy ✨</p>
+      </div>
+    </div>
+
+    <div class="screen" id="screen" aria-live="polite">
+      <div class="orb a"></div>
+      <div class="orb b"></div>
+      <div class="expr" id="expr">0</div>
+      <div class="value" id="value">0</div>
+    </div>
+
+    <div class="pad" id="pad">
+      <button class="key clear" data-action="clear">C</button>
+      <button class="key op" data-action="pm">±</button>
+      <button class="key op" data-action="percent">%</button>
+      <button class="key op" data-action="/">÷</button>
+
+      <button class="key" data-key="7">7</button>
+      <button class="key" data-key="8">8</button>
+      <button class="key" data-key="9">9</button>
+      <button class="key op" data-action="*">×</button>
+
+      <button class="key" data-key="4">4</button>
+      <button class="key" data-key="5">5</button>
+      <button class="key" data-key="6">6</button>
+      <button class="key op" data-action="-">−</button>
+
+      <button class="key" data-key="1">1</button>
+      <button class="key" data-key="2">2</button>
+      <button class="key" data-key="3">3</button>
+      <button class="key op" data-action="+">+</button>
+
+      <button class="key" data-key="0" style="grid-column:span 2">0</button>
+      <button class="key" data-key=".">.</button>
+      <button class="key eq" data-action="=">=</button>
+    </div>
+
+    <div class="hint">Tip: Use keyboard keys (0–9, + - * /, Enter, Backspace)</div>
+  </div>
+
+  <script>
+    // Simple calculator logic with a few safety checks and animated feedback
+    const exprEl = document.getElementById('expr');
+    const valueEl = document.getElementById('value');
+    const pad = document.getElementById('pad');
+    const screen = document.getElementById('screen');
+
+    let expr = '';
+    let lastResult = null;
+
+    function updateScreen(){
+      exprEl.textContent = expr || '0';
+      valueEl.textContent = expr ? prettyDisplay(expr) : '0';
+    }
+
+    function prettyDisplay(s){
+      // try to show an evaluated result if it's a complete expression
+      try{
+        if(/^[0-9.()+\-*/% ]+$/.test(s) && /[0-9)]$/.test(s)){
+          const safe = s.replace(/×/g,'*').replace(/÷/g,'/');
+          const v = Function('return ('+safe+')')();
+          if(Number.isFinite(v)) return String(v);
+        }
+      }catch(e){}
+      return s;
+    }
+
+    function press(key){
+      // small press animation
+      const btn = Array.from(document.querySelectorAll('button')).find(b => (b.dataset.key === key) || (b.dataset.action === key));
+      if(btn){ btn.style.transform='translateY(-6px) scale(1.02)'; setTimeout(()=>btn.style.transform='',120); }
+
+      if(/^[0-9]$/.test(key)){
+        // append digit
+        if(expr === '0') expr = key; else expr += key;
+      }else if(key === '.'){
+        // prevent multiple dots in the same number
+        const parts = expr.split(/[^0-9.]/);
+        const last = parts[parts.length-1] || '';
+        if(!last.includes('.')) expr += '.';
+      }else if(['+','-','*','/','%'].includes(key)){
+        if(!expr) return; // no leading op
+        if(/[+\-*/%]$/.test(expr)) expr = expr.slice(0,-1) + key; else expr += key;
+      }else if(key === 'clear'){
+        expr = '';
+      }else if(key === 'pm'){
+        // toggle sign on last number
+        expr = expr.replace(/(\d+\.?\d*)$/,(m)=> (m.startsWith('-')?m.slice(1):('-'+m)));
+      }else if(key === 'percent'){
+        // apply percent to last number
+        expr = expr.replace(/(\d+\.?\d*)$/, (m) => '('+m+'/100)');
+      }else if(key === '='){
+        evaluate();
+      }
+      updateScreen();
+    }
+
+    function evaluate(){
+      if(!expr) return;
+      try{
+        const safe = expr.replace(/×/g,'*').replace(/÷/g,'/');
+        if(!/^[0-9.()+\-*/% ]+$/.test(safe)) throw new Error('Invalid chars');
+        // eslint-disable-next-line no-new-func
+        const res = Function('return ('+safe+')')();
+        if(Number.isFinite(res)){
+          lastResult = res;
+          expr = String(res);
+          // little celebration animation
+          screen.animate([{transform:'scale(1)'},{transform:'scale(1.02)'},{transform:'scale(1)'}],{duration:240,easing:'ease'});
+        }
+      }catch(e){
+        // shake screen on error
+        screen.animate([{transform:'translateX(0)'},{transform:'translateX(-8px)'},{transform:'translateX(8px)'},{transform:'translateX(0)'}],{duration:350});
+      }
+      updateScreen();
+    }
+
+    // handle clicks
+    pad.addEventListener('click', (e)=>{
+      const btn = e.target.closest('button');
+      if(!btn) return;
+      const key = btn.dataset.key || btn.dataset.action;
+      press(key);
+    });
+
+    // keyboard support
+    document.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter') { e.preventDefault(); press('='); return; }
+      if(e.key === 'Backspace'){ e.preventDefault(); expr = expr.slice(0,-1); updateScreen(); return; }
+      if(e.key === 'Escape'){ press('clear'); return; }
+
+      const map = {'/':'/','*':'*','-':'-','+':'+','%':'%'};
+      if(e.key in map){ press(map[e.key]); return; }
+      if(/^[0-9.]$/.test(e.key)) { press(e.key); }
+    });
+
+    // initial
+    updateScreen();
+  </script>
+</body>
+</html>
